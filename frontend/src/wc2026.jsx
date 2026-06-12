@@ -160,6 +160,99 @@ const ALL_MATCHES = (() => {
   return out;
 })();
 
+// ---- Monte Carlo simulation -------------------------------------------------
+
+function samplePoisson(lam) {
+  if (lam <= 0) return 0;
+  const L = Math.exp(-lam);
+  let k = 0, p = 1;
+  do { k++; p *= Math.random(); } while (p > L);
+  return k - 1;
+}
+
+function simulateGroupOnce(teams) {
+  const pts = {}, gd = {}, gf = {};
+  teams.forEach((t) => { pts[t] = 0; gd[t] = 0; gf[t] = 0; });
+  for (let i = 0; i < teams.length; i++) {
+    for (let j = i + 1; j < teams.length; j++) {
+      const [lamA, lamB] = expectedGoals(teams[i], teams[j]);
+      const gA = samplePoisson(lamA), gB = samplePoisson(lamB);
+      gf[teams[i]] += gA; gf[teams[j]] += gB;
+      gd[teams[i]] += gA - gB; gd[teams[j]] += gB - gA;
+      if (gA > gB) pts[teams[i]] += 3;
+      else if (gA === gB) { pts[teams[i]]++; pts[teams[j]]++; }
+      else pts[teams[j]] += 3;
+    }
+  }
+  return teams
+    .map((t) => ({ team: t, pts: pts[t], gd: gd[t], gf: gf[t] }))
+    .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
+}
+
+function simRound(matchups) {
+  // knockout match: draw resolved by 50/50 penalty shootout
+  return matchups.map(([a, b]) => {
+    const [lamA, lamB] = expectedGoals(a, b);
+    const gA = samplePoisson(lamA), gB = samplePoisson(lamB);
+    if (gA !== gB) return gA > gB ? a : b;
+    return Math.random() < 0.5 ? a : b;
+  });
+}
+
+function toPairs(arr) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += 2) out.push([arr[i], arr[i + 1]]);
+  return out;
+}
+
+function runMonteCarlo(N = 10000) {
+  const counts = {};
+  Object.values(GROUPS).flat().forEach((t) => {
+    counts[t] = { advance: 0, r16: 0, qf: 0, sf: 0, final: 0, champ: 0 };
+  });
+
+  for (let s = 0; s < N; s++) {
+    // --- group stage ---
+    const standings = {};
+    Object.entries(GROUPS).forEach(([g, teams]) => {
+      standings[g] = simulateGroupOnce(teams);
+    });
+
+    // top 2 per group advance automatically
+    Object.values(standings).forEach((ranked) => {
+      counts[ranked[0].team].advance++;
+      counts[ranked[1].team].advance++;
+    });
+
+    // best 8 third-place teams
+    const thirds = Object.values(standings)
+      .map((ranked) => ranked[2])
+      .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
+      .slice(0, 8);
+    thirds.forEach((t) => counts[t.team].advance++);
+
+    // --- R32 seeding (mirrors buildKnockoutRounds) ---
+    const w  = (g) => standings[g][0].team;
+    const ru = (g) => standings[g][1].team;
+    const th = (i) => thirds[i].team;
+    const r32 = [
+      [w("A"), ru("B")], [w("C"), ru("D")], [w("E"), ru("F")], [w("G"), ru("H")],
+      [th(0), th(1)],    [w("I"), ru("J")], [th(2), th(3)],    [w("K"), ru("L")],
+      [w("B"), ru("A")], [w("D"), ru("C")], [w("F"), ru("E")], [w("H"), ru("G")],
+      [th(4), th(5)],    [w("J"), ru("I")], [th(6), th(7)],    [w("L"), ru("K")],
+    ];
+
+    // --- knockout rounds ---
+    const r16  = simRound(r32);        r16.forEach((t) => counts[t].r16++);
+    const qf   = simRound(toPairs(r16));  qf.forEach((t) => counts[t].qf++);
+    const sf   = simRound(toPairs(qf));   sf.forEach((t) => counts[t].sf++);
+    const fin  = simRound(toPairs(sf));   fin.forEach((t) => counts[t].final++);
+    const champ = simRound(toPairs(fin)); counts[champ[0]].champ++;
+  }
+
+  return counts;
+}
+
 // ---- knockout bracket -------------------------------------------------------
 
 function computeGroupStandings() {
@@ -542,6 +635,76 @@ function KnockoutBracket() {
   );
 }
 
+// ---- Monte Carlo table ------------------------------------------------------
+
+const MC_COLS = ["Advance", "R16", "QF", "SF", "Final", "Win"];
+
+function pctFmt(v) {
+  if (v === 0) return "—";
+  if (v < 0.005) return "<1%";
+  return `${Math.round(v * 100)}%`;
+}
+
+function pctColor(v) {
+  if (v >= 0.25) return C.amber;
+  if (v >= 0.10) return C.ink;
+  if (v >= 0.02) return "#a0a8b4";
+  return C.dim;
+}
+
+function MonteCarloTable() {
+  const raw = useMemo(() => runMonteCarlo(10000), []);
+  const N = 10000;
+
+  const rows = Object.entries(raw)
+    .map(([team, c]) => ({
+      team,
+      group: Object.entries(GROUPS).find(([, ts]) => ts.includes(team))?.[0] ?? "?",
+      vals: [c.advance / N, c.r16 / N, c.qf / N, c.sf / N, c.final / N, c.champ / N],
+    }))
+    .sort((a, b) => b.vals[5] - a.vals[5]);
+
+  const th = (label, right = true) => (
+    <th style={{ padding: "6px 10px", fontWeight: 600, color: C.dim, textAlign: right ? "right" : "left", whiteSpace: "nowrap" }}>
+      {label}
+    </th>
+  );
+
+  return (
+    <div>
+      <p style={{ color: C.dim, fontSize: 12, margin: "0 0 16px", lineHeight: 1.6 }}>
+        10,000 simulated tournaments. Each run samples Poisson scores for every match, resolves group standings,
+        advances the top 2 per group + best 8 thirds, then plays out the bracket. Draws go to 50/50 penalties.
+        Sorted by tournament win probability.
+      </p>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: "ui-monospace, monospace" }}>
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${C.line}` }}>
+              {th("Team", false)}
+              {th("Grp")}
+              {MC_COLS.map((c) => <th key={c} style={{ padding: "6px 10px", fontWeight: 600, color: c === "Win" ? C.amber : C.dim, textAlign: "right" }}>{c}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.team} style={{ borderBottom: `1px solid ${C.line}` }}>
+                <td style={{ padding: "5px 10px", color: C.ink, fontWeight: 600, whiteSpace: "nowrap" }}>{r.team}</td>
+                <td style={{ padding: "5px 10px", color: C.dim, textAlign: "right" }}>{r.group}</td>
+                {r.vals.map((v, i) => (
+                  <td key={i} style={{ padding: "5px 10px", textAlign: "right", color: pctColor(v), fontWeight: i === 5 && v >= 0.05 ? 700 : 400 }}>
+                    {pctFmt(v)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [tab, setTab] = useState("matches");
   const [openIdx, setOpenIdx] = useState(0);
@@ -592,7 +755,7 @@ export default function App() {
 
         {/* tabs */}
         <div style={{ display: "flex", gap: 4, marginBottom: 18, borderBottom: `1px solid ${C.line}` }}>
-          {[["matches", "Match predictions"], ["groups", "Group projections"], ["knockout", "Knockout bracket"]].map(([k, label]) => (
+          {[["matches", "Match predictions"], ["groups", "Group projections"], ["knockout", "Knockout bracket"], ["simulate", "Monte Carlo"]].map(([k, label]) => (
             <button
               key={k}
               onClick={() => setTab(k)}
@@ -650,6 +813,8 @@ export default function App() {
         )}
 
         {tab === "knockout" && <KnockoutBracket />}
+
+        {tab === "simulate" && <MonteCarloTable />}
 
         <p style={{ color: C.dim, fontSize: 11, marginTop: 24, lineHeight: 1.6 }}>
           Group projections show expected points across the three group games (3×win prob + draw prob); top two shaded as advancing.
