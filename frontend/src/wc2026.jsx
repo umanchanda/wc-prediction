@@ -635,6 +635,62 @@ function KnockoutBracket() {
   );
 }
 
+// ---- Third-place rankings ---------------------------------------------------
+
+function ThirdPlaceRankings() {
+  const standings = useMemo(computeGroupStandings, []);
+  const thirds = Object.entries(standings)
+    .map(([group, ranked]) => ({ team: ranked[2].team, pts: ranked[2].pts, group }))
+    .sort((a, b) => b.pts - a.pts);
+
+  return (
+    <div style={{ marginTop: 22 }}>
+      <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 1.5, color: C.amber, marginBottom: 8 }}>
+        Best Third-Place Teams
+      </div>
+      <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 8, overflow: "hidden" }}>
+        {thirds.map((entry, i) => (
+          <React.Fragment key={entry.team}>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              padding: "8px 14px",
+              borderBottom: `1px solid ${C.line}`,
+            }}>
+              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 11, color: i < 8 ? C.win : C.dim, width: 22 }}>
+                {i + 1}
+              </span>
+              <span style={{ flex: 1, fontSize: 13, color: i < 8 ? C.ink : C.dim }}>
+                {entry.team}
+              </span>
+              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 11, color: C.dim, marginRight: 16 }}>
+                Group {entry.group}
+              </span>
+              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 11, color: i < 8 ? C.win : C.dim }}>
+                {entry.pts.toFixed(1)} pts
+              </span>
+            </div>
+            {i === 7 && (
+              <div style={{
+                padding: "3px 14px",
+                fontSize: 9,
+                textTransform: "uppercase",
+                letterSpacing: 1.5,
+                color: C.loss,
+                background: C.panel2,
+                borderTop: `1px dashed ${C.loss}`,
+                borderBottom: `1px solid ${C.line}`,
+              }}>
+                Eliminated
+              </div>
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ---- Monte Carlo table ------------------------------------------------------
 
 const MC_COLS = ["Advance", "R16", "QF", "SF", "Final", "Win"];
@@ -805,11 +861,14 @@ export default function App() {
         )}
 
         {tab === "groups" && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
-            {Object.entries(GROUPS).map(([g, teams]) => (
-              <GroupTable key={g} g={g} teams={teams} />
-            ))}
-          </div>
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
+              {Object.entries(GROUPS).map(([g, teams]) => (
+                <GroupTable key={g} g={g} teams={teams} />
+              ))}
+            </div>
+            <ThirdPlaceRankings />
+          </>
         )}
 
         {tab === "knockout" && <KnockoutBracket />}
