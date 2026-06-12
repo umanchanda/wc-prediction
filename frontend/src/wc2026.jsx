@@ -65,6 +65,8 @@ const TEAMS = {
   Uzbekistan: [1310, ["Shomurodov", "Urunov", "Masharipov"]],
   Iraq: [1300, ["Aymen Hussein", "Resan", "Ali Jasim"]],
   "Bosnia and Herzegovina": [1430, ["Džeko", "Demirović", "Tabaković"]],
+  Scotland: [1385, ["Adams", "Dykes", "McGinn"]],
+  "DR Congo": [1290, ["Mayele", "Bakambu", "Bongonda"]],
 };
 
 const HOSTS = ["USA", "Mexico", "Canada"];
@@ -72,17 +74,17 @@ const HOSTS = ["USA", "Mexico", "Canada"];
 // 12 groups (A-L) from the Dec 2025 draw.
 const GROUPS = {
   A: ["Mexico", "South Africa", "South Korea", "Czechia"],
-  B: ["Canada", "Switzerland", "Qatar", "Bosnia and Herzegovina"],
-  C: ["Argentina", "Croatia", "Tunisia", "Curaçao"],
+  B: ["Canada", "Bosnia and Herzegovina", "Qatar", "Switzerland"],
+  C: ["Brazil", "Morocco", "Haiti", "Scotland"],
   D: ["USA", "Paraguay", "Australia", "Türkiye"],
-  E: ["Brazil", "Colombia", "Algeria", "Haiti"],
-  F: ["Portugal", "Ecuador", "Austria", "Panama"],
+  E: ["Germany", "Curaçao", "Ivory Coast", "Ecuador"],
+  F: ["Netherlands", "Japan", "Sweden", "Tunisia"],
   G: ["Belgium", "Egypt", "Iran", "New Zealand"],
   H: ["Spain", "Cape Verde", "Saudi Arabia", "Uruguay"],
   I: ["France", "Senegal", "Iraq", "Norway"],
-  J: ["Netherlands", "Japan", "Ghana", "Jordan"],
-  K: ["England", "Poland", "Ivory Coast", "Uzbekistan"],
-  L: ["Germany", "Sweden", "Serbia", "Wales"],
+  J: ["Argentina", "Algeria", "Austria", "Jordan"],
+  K: ["Portugal", "DR Congo", "Uzbekistan", "Colombia"],
+  L: ["England", "Croatia", "Ghana", "Panama"],
 };
 
 // ---- model helpers --------------------------------------------------------

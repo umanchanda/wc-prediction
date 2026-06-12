@@ -34,6 +34,7 @@ FIFA_POINTS = {
     "Qatar": 1330, "Uzbekistan": 1310, "Iraq": 1300, "Saudi Arabia": 1290,
     "South Africa": 1280, "Jordan": 1255, "Cape Verde": 1235, "Ghana": 1215,
     "Curacao": 1140, "Haiti": 1130, "New Zealand": 1115,
+    "Scotland": 1385, "DR Congo": 1290,
 }
 
 HOSTS = {"USA", "Mexico", "Canada"}
