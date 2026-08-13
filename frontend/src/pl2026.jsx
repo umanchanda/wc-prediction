@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import "./styles.css";
 
 // Premier League 2026-27 Prediction Desk
 // - 20 clubs, double round-robin fixtures (380 matches)
@@ -117,12 +118,17 @@ function pct(v, N) { return `${Math.round((v / N) * 1000) / 10}%`; }
 function LeagueTable({ stats }) {
   const teams = CLUBS.slice().sort((a,b) => stats.avgPoints[b] - stats.avgPoints[a]);
   return (
-    <div>
-      <h2 style={{marginTop:0}}>Projected Table (by avg points)</h2>
-      <table style={{width:'100%', borderCollapse:'collapse'}}>
+    <div className="card league-table">
+      <h2 style={{marginTop:0}}>Projected Table</h2>
+      <table>
         <thead>
-          <tr style={{textAlign:'left'}}>
-            <th>Pos</th><th>Club</th><th>Avg pts</th><th>Champ%</th><th>Top4%</th><th>Releg%</th>
+          <tr>
+            <th style={{width:40}}>Pos</th>
+            <th>Club</th>
+            <th style={{width:90}}>Avg pts</th>
+            <th style={{width:90}}>Champ%</th>
+            <th style={{width:90}}>Top4%</th>
+            <th style={{width:90}}>Releg%</th>
           </tr>
         </thead>
         <tbody>
@@ -131,13 +137,13 @@ function LeagueTable({ stats }) {
             const top4 = stats.rankCounts[t].slice(0,4).reduce((a,b)=>a+b,0);
             const releg = stats.rankCounts[t].slice(-3).reduce((a,b)=>a+b,0);
             return (
-              <tr key={t} style={{borderTop:'1px solid #eee'}}>
-                <td style={{width:40}}>{i+1}</td>
+              <tr key={t}>
+                <td>{i+1}</td>
                 <td>{t}</td>
-                <td style={{width:90}}>{stats.avgPoints[t]}</td>
-                <td style={{width:90}}>{pct(champ, stats.sims)}</td>
-                <td style={{width:90}}>{pct(top4, stats.sims)}</td>
-                <td style={{width:90}}>{pct(releg, stats.sims)}</td>
+                <td>{stats.avgPoints[t]}</td>
+                <td>{pct(champ, stats.sims)}</td>
+                <td>{pct(top4, stats.sims)}</td>
+                <td style={{color:i>=17? 'var(--danger)': i<4 ? 'var(--success)' : 'inherit'}}>{pct(releg, stats.sims)}</td>
               </tr>
             );
           })}
@@ -188,34 +194,35 @@ function FixturesList() {
   }
 
   return (
-    <div>
-      <h2 style={{marginTop:0}}>Fixtures — Matchday {matchday}</h2>
-      <div style={{display:'flex', gap:8, alignItems:'center', marginBottom:8}}>
-        <button onClick={() => setMatchday((md) => Math.max(1, md - 1))}>Prev</button>
-        <label style={{color:'#333'}}>Matchday</label>
+    <div className="card fixtures">
+      <div className="matchday-header">
+        <h2 style={{margin:0}}>Matchday {matchday}</h2>
+      </div>
+      <div className="controls" style={{marginBottom:12}}>
+        <button className="btn" onClick={() => setMatchday((md) => Math.max(1, md - 1))}>Prev</button>
+        <label className="muted small">Matchday</label>
         <select value={matchday} onChange={(e) => { setMatchday(Number(e.target.value)); setSimResults(null); }}>
           {rounds.map((_, i) => <option key={i} value={i+1}>MD {i+1}</option>)}
         </select>
-        <button onClick={() => setMatchday((md) => Math.min(rounds.length, md + 1))}>Next</button>
+        <button className="btn" onClick={() => setMatchday((md) => Math.min(rounds.length, md + 1))}>Next</button>
         <div style={{marginLeft:'auto'}}>
-          <button onClick={() => simulateMatchday(1500)} disabled={runningSim}>{runningSim ? 'Simulating…' : 'Simulate Matchday'}</button>
+          <button className="btn primary" onClick={() => simulateMatchday(1500)} disabled={runningSim}>{runningSim ? 'Simulating…' : 'Simulate Matchday'}</button>
         </div>
       </div>
-      <div style={{maxHeight:420, overflow:'auto', border:'1px solid #eee', padding:8}}>
+
+      <div style={{maxHeight:420, overflow:'auto'}}>
         {cur.map((m, i) => {
           const [lh, la] = expectedGoals(m.home, m.away);
           const probHomeWin = Math.min(0.99, Math.max(0.01, 1 - Math.exp(-(lh - la + 0.2))));
           const sim = simResults ? simResults[i] : null;
           return (
-            <div key={i} style={{display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px dashed #f4f4f4'}}>
+            <div key={i} className="match-item">
               <div style={{fontWeight:600, cursor:'pointer'}} onClick={() => setSelectedMatch({ ...m, idx: i })}>
-                {m.home} <span style={{color:'#999'}}>v</span> {m.away}
+                {m.home} <span className="muted">v</span> {m.away}
               </div>
-              <div style={{color:'#666', textAlign:'right'}}>
-                <div>xG {lh.toFixed(2)}–{la.toFixed(2)} · {Math.round(probHomeWin*100)}%</div>
-                {sim && <div style={{fontSize:12, color:'#444'}}>
-                  {sim.homeWinPct}% / {sim.drawPct}% / {sim.awayWinPct}% • {sim.avgHomeGoals}-{sim.avgAwayGoals}
-                </div>}
+              <div style={{textAlign:'right'}}>
+                <div className="muted small">xG {lh.toFixed(2)}–{la.toFixed(2)} · {Math.round(probHomeWin*100)}%</div>
+                {sim && <div className="small">{sim.homeWinPct}% / {sim.drawPct}% / {sim.awayWinPct}% • {sim.avgHomeGoals}-{sim.avgAwayGoals}</div>}
               </div>
             </div>
           );
@@ -223,10 +230,10 @@ function FixturesList() {
       </div>
 
       {selectedMatch && (
-        <div style={{position:'fixed', left:0, top:0, right:0, bottom:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center'}} onClick={() => setSelectedMatch(null)}>
-          <div style={{background:'#fff', padding:20, minWidth:320}} onClick={(e) => e.stopPropagation()}>
+        <div className="modal" onClick={() => setSelectedMatch(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <h3 style={{marginTop:0}}>{selectedMatch.home} v {selectedMatch.away}</h3>
-            <p style={{color:'#666'}}>xG: {expectedGoals(selectedMatch.home, selectedMatch.away).map(x=>x.toFixed(2)).join(' - ')}</p>
+            <p className="muted small">xG: {expectedGoals(selectedMatch.home, selectedMatch.away).map(x=>x.toFixed(2)).join(' - ')}</p>
             {simResults ? (() => {
               const s = simResults[selectedMatch.idx];
               return (
@@ -237,8 +244,8 @@ function FixturesList() {
                   <div style={{marginTop:8}}><strong>Avg score:</strong> {s.avgHomeGoals} - {s.avgAwayGoals}</div>
                 </div>
               );
-            })() : <div style={{color:'#444'}}>No simulation run yet for this matchday.</div>}
-            <div style={{marginTop:12, textAlign:'right'}}><button onClick={() => setSelectedMatch(null)}>Close</button></div>
+            })() : <div className="muted">No simulation run yet for this matchday.</div>}
+            <div style={{marginTop:12, textAlign:'right'}}><button className="btn" onClick={() => setSelectedMatch(null)}>Close</button></div>
           </div>
         </div>
       )}

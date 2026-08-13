@@ -1,0 +1,30 @@
+:root{
+  --bg:#fbfbfd; --card:#fff; --muted:#6b7280; --accent:#0f172a; --primary:#0b5cff;
+  --success:#16a34a; --danger:#ef4444; --glass: rgba(15,23,42,0.04);
+}
+*{box-sizing:border-box}
+body{background:var(--bg); font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#081124}
+.app{max-width:1100px; margin:28px auto; padding:20px}
+.header{display:flex; align-items:center; gap:16px}
+.title{font-size:20px; margin:0}
+.subtitle{color:var(--muted); margin-top:2px; font-size:13px}
+.controls{display:flex; gap:8px; align-items:center; margin:14px 0}
+.btn{background:#eee;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+.btn.primary{background:var(--accent); color:#fff}
+.btn.ghost{background:transparent;border:1px solid #e6e9ef}
+.btn[disabled]{opacity:0.6; cursor:not-allowed}
+.badge{background:var(--glass); padding:6px 10px; border-radius:999px; font-size:12px; color:var(--muted)}
+.badge.server{background:#e6f2ff; color:var(--primary); border:1px solid rgba(11,92,255,0.08)}
+.grid{display:grid; grid-template-columns: 1fr 420px; gap:18px}
+.card{background:var(--card); border-radius:12px; padding:14px; box-shadow:0 1px 0 rgba(9,9,16,0.03);}
+.league-table table{width:100%; border-collapse:collapse}
+.league-table th{background:#f6f9ff; text-align:left; padding:8px}
+.league-table td{padding:10px; border-top:1px solid #f3f4f6}
+.league-table tbody tr:nth-child(odd){background:linear-gradient(180deg, rgba(11,92,255,0.01), transparent)}
+.fixtures .match-item{display:flex; justify-content:space-between; padding:10px; border-radius:8px; margin-bottom:8px; background:linear-gradient(180deg, rgba(0,0,0,0.01), transparent)}
+.matchday-header{display:flex; align-items:center; gap:8px; margin-bottom:8px}
+.modal{position:fixed; inset:0; background:rgba(2,6,23,0.45); display:flex; align-items:center; justify-content:center}
+.modal .modal-card{background:var(--card); padding:18px; border-radius:10px; min-width:320px}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.controls select{padding:8px;border-radius:8px;border:1px solid #e6e9ef}
