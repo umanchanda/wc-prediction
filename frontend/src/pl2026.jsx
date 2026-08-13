@@ -9,30 +9,31 @@ import "./styles.css";
 
 // Club strength ratings (arbitrary scale similar to Elo)
 // Official 2026-27 Premier League clubs (as used on Wikipedia)
-const TEAMS = {
-  "Arsenal": [1850, ["Ødegaard", "Saka"]],
-  "Aston Villa": [1700, ["Ollie Watkins", "Grealish"]],
-  "Bournemouth": [1490, ["Dominic Solanke"]],
-  "Brentford": [1630, ["Toney"]],
-  "Brighton & Hove Albion": [1690, ["Mitchell"]],
-  "Chelsea": [1720, ["Coleman"]],
-  "Coventry City": [1485, ["Matt Godden"]],
-  "Crystal Palace": [1560, ["Olise"]],
-  "Everton": [1550, ["Calvert-Lewin"]],
-  "Fulham": [1580, ["Mitrović"]],
-  "Hull City": [1470, ["McBurnie"]],
-  "Ipswich Town": [1480, ["McGoldrick"]],
-  "Leeds United": [1540, ["Grodzicki"]],
-  "Liverpool": [1840, ["Mohamed Salah"]],
-  "Manchester City": [1900, ["Haaland"]],
-  "Manchester United": [1760, ["Rashford"]],
-  "Newcastle United": [1765, ["Isak"]],
-  "Nottingham Forest": [1500, ["Gaston"]],
-  "Sunderland": [1565, ["Granit Xhaka"]],
-  "Tottenham Hotspur": [1780, ["Kane"]],
+// TEAMS maps club -> rating. Optional external `ratings.json` can override.
+let TEAMS = {
+  "Arsenal": 1850,
+  "Aston Villa": 1700,
+  "Bournemouth": 1490,
+  "Brentford": 1630,
+  "Brighton & Hove Albion": 1690,
+  "Chelsea": 1720,
+  "Coventry City": 1485,
+  "Crystal Palace": 1560,
+  "Everton": 1550,
+  "Fulham": 1580,
+  "Hull City": 1470,
+  "Ipswich Town": 1480,
+  "Leeds United": 1540,
+  "Liverpool": 1840,
+  "Manchester City": 1900,
+  "Manchester United": 1760,
+  "Newcastle United": 1765,
+  "Nottingham Forest": 1500,
+  "Sunderland": 1565,
+  "Tottenham Hotspur": 1780,
 };
 
-const CLUBS = Object.keys(TEAMS);
+let CLUBS = Object.keys(TEAMS);
 
 // generate double round-robin fixtures as matchdays (38 rounds)
 function generateMatchdays(teams) {
@@ -62,8 +63,45 @@ function generateMatchdays(teams) {
   return rounds.concat(secondHalf);
 }
 
-const ALL_MATCHDAYS = generateMatchdays(CLUBS); // 38 rounds
-const ALL_MATCHES = ALL_MATCHDAYS.flat();
+// Matchdays will be derived at runtime; if `fixtures.json` exists in public
+// it should be an array of rounds: [[{home,away},...], ...]
+let ALL_MATCHDAYS = generateMatchdays(CLUBS); // default
+let ALL_MATCHES = ALL_MATCHDAYS.flat();
+
+async function loadExternalFixturesAndRatings() {
+  try {
+    const f = await fetch('/fixtures.json');
+    if (f.ok) {
+      const jf = await f.json();
+      if (Array.isArray(jf) && jf.length > 0) {
+        ALL_MATCHDAYS = jf;
+        ALL_MATCHES = ALL_MATCHDAYS.flat();
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+  try {
+    const r = await fetch('/ratings.json');
+    if (r.ok) {
+      const jr = await r.json();
+      if (jr && typeof jr === 'object') {
+        TEAMS = { ...TEAMS, ...jr };
+        CLUBS = Object.keys(TEAMS);
+        // regenerate if no external fixtures
+        if (!Array.isArray(window.__EXTERNAL_FIXTURES__) ) {
+          ALL_MATCHDAYS = generateMatchdays(CLUBS);
+          ALL_MATCHES = ALL_MATCHDAYS.flat();
+        }
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
+// attempt to load external assets in background
+loadExternalFixturesAndRatings();
 
 // map rating to strength; center near 0
 const ratingOf = (pts) => (pts - 1500) / 200; // tuned for club scale

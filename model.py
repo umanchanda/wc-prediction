@@ -43,6 +43,19 @@ CLUB_RATINGS = {
     "Tottenham Hotspur": 1780,
 }
 
+# allow overrides from data/ratings.json if present
+try:
+    import json, os
+    path = os.path.join(os.path.dirname(__file__), 'data', 'ratings.json')
+    if os.path.exists(path):
+        with open(path, 'r') as fh:
+            j = json.load(fh)
+            if isinstance(j, dict):
+                for k, v in j.items():
+                    CLUB_RATINGS[k] = int(v)
+except Exception:
+    pass
+
 BASE_GOALS = 1.35          # avg goals per team per match
 STRENGTH_K = 1.2          # how sharply rating gap maps to goals (club scale)
 HOME_BUMP = 1.12
