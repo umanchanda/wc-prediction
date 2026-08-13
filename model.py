@@ -1,5 +1,5 @@
 """
-model.py — World Cup 2026 live prediction model.
+model.py — Premier League 2026-27 live prediction model.
 
 Two regimes that blend as a match progresses:
 

@@ -1,4 +1,4 @@
-# World Cup 2026 Live Prediction API
+# Premier League 2026-27 Live Prediction API
 
 A small FastAPI backend that polls a football data provider, runs an
 in-play-aware prediction model, and serves live win/draw/loss probabilities.
@@ -15,11 +15,11 @@ pip install -r requirements.txt
 uvicorn server:app --reload --port 8000
 ```
 Open http://localhost:8000/live — runs in **mock mode**, simulating one
-match (USA vs Paraguay) ticking forward so you can watch probabilities move.
+match (example teams) ticking forward so you can watch probabilities move.
 
 ## Going live with real data
-1. Sign up for a provider (Sportmonks World Cup plan includes live xG;
-   API-Football is cheaper but you compute xG).
+1. Sign up for a provider (Sportmonks or API-Football provide live xG;
+   choose a feed appropriate for club fixtures or live match data).
 2. `cp .env.example .env`, set `PROVIDER` and your key.
 3. Restart the server.
 4. If the provider's JSON shape differs, adjust the `_map` methods in

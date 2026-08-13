@@ -1,14 +1,14 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 
 // ---------------------------------------------------------------------------
-// 2026 World Cup prediction desk
-// Self-contained: team strength derived from April 2026 FIFA points / rank order.
+// 2026-27 Premier League prediction desk
+// Self-contained: team strength derived from April 2026 points / rank order.
 // Model: bivariate-ish Poisson. Expected goals from attack vs defense strength,
-// host advantage for USA/Mexico/Canada. Win/draw/loss from scoreline grid.
+// home advantage where applicable. Win/draw/loss from scoreline grid.
 // ---------------------------------------------------------------------------
 
 // FIFA points where known (Apr 2026); others interpolated from rank order.
-// rating ~ centered so an average WC team sits near 0.
+// rating ~ centered so an average team sits near 0.
 const TEAMS = {
   // name: [fifaPoints, [key attackers...]]
   France: [1877, ["Mbappé", "Dembélé", "Olise"]],
@@ -332,7 +332,7 @@ function buildKnockoutRounds() {
 }
 
 // ---- live backend connection ----------------------------------------------
-// Polls a running wc-prediction-api server (/live) and returns a map of
+// Polls a running pl-prediction-api server (/live) and returns a map of
 // "TeamA|TeamB" -> live prediction. Falls back silently to the static model
 // when no URL is set or the server is unreachable.
 
@@ -782,11 +782,11 @@ export default function App() {
         {/* header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 4 }}>
           <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.5, margin: 0 }}>
-            World Cup 2026 <span style={{ color: C.amber }}>Prediction Desk</span>
+            Premier League 2026-27 <span style={{ color: C.amber }}>Prediction Desk</span>
           </h1>
         </div>
         <p style={{ color: C.dim, fontSize: 13, margin: "6px 0 16px", maxWidth: 620 }}>
-          Poisson model over FIFA-points strength. Every group-stage match: win probabilities, expected goals,
+          Poisson model over team-strength points. Match predictions: win probabilities, expected goals,
           likeliest scorelines, and anytime-scorer odds. Numbers are model estimates, not certainties — treat scorer odds as probabilities, not picks.
         </p>
 
@@ -877,8 +877,8 @@ export default function App() {
 
         <p style={{ color: C.dim, fontSize: 11, marginTop: 24, lineHeight: 1.6 }}>
           Group projections show expected points across the three group games (3×win prob + draw prob); top two shaded as advancing.
-          Strength ratings seeded from April 2026 FIFA points. The static model has no injury, form, or lineup awareness.
-          Connect a running wc-prediction-api backend (paste its URL above, e.g. http://localhost:8000) to replace the static numbers
+          Strength ratings seeded from April 2026 points. The static model has no injury, form, or lineup awareness.
+          Connect a running pl-prediction-api backend (paste its URL above, e.g. http://localhost:8000) to replace the static numbers
           with live in-play predictions for matches in progress — those cards show a LIVE badge and update every 15 seconds.
         </p>
       </div>

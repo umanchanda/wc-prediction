@@ -1,13 +1,13 @@
-# World Cup 2026 Prediction Project — Handoff
+# Premier League 2026-27 Prediction Project — Handoff
 
 Context doc for picking this project up in Claude Code (or any fresh session).
-Read this first, then skim `model.py` and `wc2026.jsx`.
+Read this first, then skim `model.py` and `pl2026.jsx`.
 
 ## What this is
 
-A live-updating prediction tool for the 2026 World Cup. Two parts:
+A live-updating prediction tool for the upcoming Premier League season. Two parts:
 
-1. **Backend** (`wc-prediction-api/`) — a FastAPI server that polls a football
+1. **Backend** (`pl-prediction-api/`) — a FastAPI server that polls a football
    data provider, runs an in-play-aware prediction model, and serves JSON.
 2. **Frontend** (`wc2026.jsx`) — a React app showing every group-stage match
    with win/draw/loss probabilities, expected goals, likeliest scorelines, and
@@ -33,7 +33,7 @@ the client and avoids rate-limit blowups from visitor traffic.
 
 ## Files
 
-### Backend (`wc-prediction-api/`)
+### Backend (`pl-prediction-api/`)
 - `model.py` — the prediction math. Two regimes that blend over the match:
   - **pre-match**: expected goals from FIFA-points-based team strength.
   - **in-play**: current score is fixed; only the *remaining* minutes are
@@ -54,7 +54,7 @@ the client and avoids rate-limit blowups from visitor traffic.
 - `requirements.txt`, `.env.example`, `README.md` — setup.
 
 ### Frontend
-- `wc2026.jsx` — single-file React app. Key pieces:
+- `pl2026.jsx` — single-file React app. Key pieces:
   - `TEAMS`, `GROUPS` — all 48 teams, 12 groups, FIFA-points strengths, key
     attackers per team.
   - `predict(a, b)` — the embedded static Poisson model (mirrors the backend's
@@ -102,7 +102,7 @@ the client and avoids rate-limit blowups from visitor traffic.
 
 ## Quick start
 ```bash
-cd wc-prediction-api
+cd pl-prediction-api
 pip install -r requirements.txt
 uvicorn server:app --reload --port 8000
 # open the frontend, paste http://localhost:8000 into the connection bar, Connect
