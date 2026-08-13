@@ -32,17 +32,36 @@ const TEAMS = {
 
 const CLUBS = Object.keys(TEAMS);
 
-// generate double round-robin fixtures (home/away for each pair)
-const ALL_MATCHES = (() => {
-  const out = [];
-  for (let i = 0; i < CLUBS.length; i++) {
-    for (let j = 0; j < CLUBS.length; j++) {
-      if (i === j) continue;
-      out.push({ home: CLUBS[i], away: CLUBS[j] });
+// generate double round-robin fixtures as matchdays (38 rounds)
+function generateMatchdays(teams) {
+  const t = teams.slice();
+  const n = t.length;
+  if (n % 2 !== 0) t.push("BYE");
+  const N = t.length;
+  const rounds = [];
+  const arr = t.slice();
+  for (let r = 0; r < N - 1; r++) {
+    const pairs = [];
+    for (let i = 0; i < N / 2; i++) {
+      const a = arr[i];
+      const b = arr[N - 1 - i];
+      if (a !== "BYE" && b !== "BYE") {
+        // alternate home advantage by round for variety
+        if (r % 2 === 0) pairs.push({ home: a, away: b });
+        else pairs.push({ home: b, away: a });
+      }
     }
+    rounds.push(pairs);
+    // rotate (keep first fixed)
+    arr.splice(1, 0, arr.pop());
   }
-  return out; // 20*19 = 380 matches
-})();
+  // duplicate with swapped home/away for second half
+  const secondHalf = rounds.map((rnd) => rnd.map((m) => ({ home: m.away, away: m.home })));
+  return rounds.concat(secondHalf);
+}
+
+const ALL_MATCHDAYS = generateMatchdays(CLUBS); // 38 rounds
+const ALL_MATCHES = ALL_MATCHDAYS.flat();
 
 // map rating to strength; center near 0
 const ratingOf = (pts) => (pts - 1500) / 200; // tuned for club scale
@@ -129,17 +148,27 @@ function LeagueTable({ stats }) {
 }
 
 function FixturesList() {
+  const [matchday, setMatchday] = React.useState(1);
+  const rounds = ALL_MATCHDAYS;
+  const cur = rounds[matchday - 1] || [];
+
   return (
     <div>
-      <h2 style={{marginTop:0}}>Fixtures (all matchups)</h2>
-      <div style={{maxHeight:400, overflow:'auto', border:'1px solid #eee', padding:8}}>
-        {ALL_MATCHES.map((m, i) => {
+      <h2 style={{marginTop:0}}>Fixtures — Matchday {matchday}</h2>
+      <div style={{display:'flex', gap:8, alignItems:'center', marginBottom:8}}>
+        <label style={{color:'#333'}}>Matchday</label>
+        <select value={matchday} onChange={(e) => setMatchday(Number(e.target.value))}>
+          {rounds.map((_, i) => <option key={i} value={i+1}>MD {i+1}</option>)}
+        </select>
+      </div>
+      <div style={{maxHeight:420, overflow:'auto', border:'1px solid #eee', padding:8}}>
+        {cur.map((m, i) => {
           const [lh, la] = expectedGoals(m.home, m.away);
-          const prHomeWin = 1 - Math.exp(-(lh)); // rough indicator
+          const probHomeWin = Math.min(0.99, Math.max(0.01, 1 - Math.exp(-(lh - la + 0.2))));
           return (
-            <div key={i} style={{display:'flex', justifyContent:'space-between', padding:'6px 0', borderBottom:'1px dashed #f4f4f4'}}>
-              <div>{m.home} vs {m.away}</div>
-              <div style={{color:'#666'}}>xG {lh.toFixed(2)}–{la.toFixed(2)} · {Math.round(prHomeWin*100)}%</div>
+            <div key={i} style={{display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px dashed #f4f4f4'}}>
+              <div style={{fontWeight:600}}>{m.home} <span style={{color:'#999'}}>v</span> {m.away}</div>
+              <div style={{color:'#666'}}>xG {lh.toFixed(2)}–{la.toFixed(2)} · {Math.round(probHomeWin*100)}%</div>
             </div>
           );
         })}
