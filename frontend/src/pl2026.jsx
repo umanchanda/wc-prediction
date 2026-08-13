@@ -250,13 +250,40 @@ export default function App() {
   const [tab, setTab] = useState('table');
   const [stats, setStats] = useState(null);
   const [running, setRunning] = useState(false);
+  const [serverUsed, setServerUsed] = useState(null);
 
   const run = async () => {
     setRunning(true);
-    // run in small batches to keep UI responsive (but here synchronous)
-    const res = runSeasonMonteCarlo(1500);
-    setStats(res);
-    setRunning(false);
+    setStats(null);
+    setServerUsed(null);
+    // try server-side endpoint first with timeout, fall back to client-side Monte Carlo
+    try {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), 10000);
+      const resp = await fetch(`/season?sims=1500`, { signal: controller.signal });
+      clearTimeout(id);
+      if (!resp.ok) throw new Error(`status ${resp.status}`);
+      const j = await resp.json();
+      // basic validation
+      if (j && j.sims) {
+        setStats(j);
+        setServerUsed(true);
+        setRunning(false);
+        return;
+      }
+      throw new Error('invalid payload');
+    } catch (err) {
+      // fallback: client-side
+      try {
+        const res = runSeasonMonteCarlo(1500);
+        setStats(res);
+        setServerUsed(false);
+      } catch (err2) {
+        console.error('both server and client simulation failed', err, err2);
+      }
+    } finally {
+      setRunning(false);
+    }
   };
 
   const quickStats = useMemo(() => stats, [stats]);
