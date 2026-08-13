@@ -28,7 +28,7 @@ load_dotenv()  # must run before any os.getenv() calls below
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from model import GameState, predict, prematch_expected_goals
+from model import GameState, predict, prematch_expected_goals, run_season_montecarlo
 from datasource import get_source
 
 POLL_SECONDS = int(os.getenv("POLL_SECONDS", "20"))
@@ -95,6 +95,16 @@ def predict_pair(
     lam_h, lam_a = prematch_expected_goals(home, away)
     p = predict(gs)
     return {**p.__dict__, "prematch_xg": {"home": round(lam_h, 2), "away": round(lam_a, 2)}}
+
+
+@app.get("/season")
+def season(sims: int = Query(1500, description="number of Monte Carlo simulations")):
+    """Run a Monte Carlo season simulation server-side and return summary stats.
+
+    This can be used by the frontend when client-side compute is undesirable.
+    """
+    res = run_season_montecarlo(sims)
+    return res
 
 
 # Serve the production frontend build.  Only mounts when frontend/dist exists

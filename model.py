@@ -52,6 +52,86 @@ def prematch_expected_goals(home: str, away: str) -> tuple[float, float]:
     return _clamp(lam_h), _clamp(lam_a)
 
 
+# --- season Monte Carlo (utility used by backend endpoint) ------------------
+def _sample_poisson(lam: float) -> int:
+    import random
+    if lam <= 0:
+        return 0
+    L = math.exp(-lam)
+    k = 0
+    p = 1.0
+    while p > L:
+        k += 1
+        p *= random.random()
+    return k - 1
+
+
+def _generate_matchdays(teams: list[str]) -> list[list[tuple[str, str]]]:
+    """Circle-method round-robin schedule, returns rounds with (home, away)."""
+    t = teams[:]
+    n = len(t)
+    if n % 2 != 0:
+        t = t + ["BYE"]
+    N = len(t)
+    arr = t[:]
+    rounds: list[list[tuple[str, str]]] = []
+    for r in range(N - 1):
+        pairs: list[tuple[str, str]] = []
+        for i in range(N // 2):
+            a = arr[i]
+            b = arr[N - 1 - i]
+            if a != "BYE" and b != "BYE":
+                if r % 2 == 0:
+                    pairs.append((a, b))
+                else:
+                    pairs.append((b, a))
+        rounds.append(pairs)
+        arr.insert(1, arr.pop())
+    # mirror
+    second = [[(away, home) for (home, away) in rnd] for rnd in rounds]
+    return rounds + second
+
+
+def run_season_montecarlo(sims: int = 1500) -> dict:
+    """Run full-season Monte Carlo on club ratings and return summary.
+
+    Returns: {"sims": int, "avgPoints": {team: float}, "rankCounts": {team: [counts...]}}
+    """
+    import random
+
+    teams = list(CLUB_RATINGS.keys())
+    rounds = _generate_matchdays(teams)
+    matches = [m for rnd in rounds for m in rnd]
+    nteams = len(teams)
+
+    rank_counts: dict[str, list[int]] = {t: [0] * nteams for t in teams}
+    avg_points: dict[str, float] = {t: 0.0 for t in teams}
+
+    for s in range(sims):
+        pts = {t: 0 for t in teams}
+        for (home, away) in matches:
+            lam_h, lam_a = prematch_expected_goals(home, away)
+            gh = _sample_poisson(lam_h)
+            ga = _sample_poisson(lam_a)
+            if gh > ga:
+                pts[home] += 3
+            elif gh < ga:
+                pts[away] += 3
+            else:
+                pts[home] += 1
+                pts[away] += 1
+
+        table = sorted(teams, key=lambda t: (-pts[t], t))
+        for idx, t in enumerate(table):
+            rank_counts[t][idx] += 1
+            avg_points[t] += pts[t]
+
+    for t in teams:
+        avg_points[t] = round(avg_points[t] / sims, 1)
+
+    return {"sims": sims, "avgPoints": avg_points, "rankCounts": rank_counts}
+
+
 # --- live game state --------------------------------------------------------
 
 @dataclass

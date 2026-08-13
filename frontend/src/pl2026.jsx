@@ -151,28 +151,97 @@ function FixturesList() {
   const [matchday, setMatchday] = React.useState(1);
   const rounds = ALL_MATCHDAYS;
   const cur = rounds[matchday - 1] || [];
+  const [simResults, setSimResults] = React.useState(null);
+  const [runningSim, setRunningSim] = React.useState(false);
+  const [selectedMatch, setSelectedMatch] = React.useState(null);
+
+  async function simulateMatchday(sims = 2000) {
+    setRunningSim(true);
+    const results = [];
+    for (const m of cur) {
+      results.push({ homeWins: 0, draws: 0, awayWins: 0, homeGoals: 0, awayGoals: 0 });
+    }
+    for (let s = 0; s < sims; s++) {
+      for (let i = 0; i < cur.length; i++) {
+        const m = cur[i];
+        const [lh, la] = expectedGoals(m.home, m.away);
+        const gh = samplePoisson(lh);
+        const ga = samplePoisson(la);
+        const r = results[i];
+        r.homeGoals += gh;
+        r.awayGoals += ga;
+        if (gh > ga) r.homeWins += 1;
+        else if (gh < ga) r.awayWins += 1;
+        else r.draws += 1;
+      }
+    }
+    // convert to percentages/averages
+    const out = results.map((r) => ({
+      homeWinPct: Math.round((r.homeWins / sims) * 1000) / 10,
+      drawPct: Math.round((r.draws / sims) * 1000) / 10,
+      awayWinPct: Math.round((r.awayWins / sims) * 1000) / 10,
+      avgHomeGoals: Math.round((r.homeGoals / sims) * 100) / 100,
+      avgAwayGoals: Math.round((r.awayGoals / sims) * 100) / 100,
+    }));
+    setSimResults(out);
+    setRunningSim(false);
+  }
 
   return (
     <div>
       <h2 style={{marginTop:0}}>Fixtures — Matchday {matchday}</h2>
       <div style={{display:'flex', gap:8, alignItems:'center', marginBottom:8}}>
+        <button onClick={() => setMatchday((md) => Math.max(1, md - 1))}>Prev</button>
         <label style={{color:'#333'}}>Matchday</label>
-        <select value={matchday} onChange={(e) => setMatchday(Number(e.target.value))}>
+        <select value={matchday} onChange={(e) => { setMatchday(Number(e.target.value)); setSimResults(null); }}>
           {rounds.map((_, i) => <option key={i} value={i+1}>MD {i+1}</option>)}
         </select>
+        <button onClick={() => setMatchday((md) => Math.min(rounds.length, md + 1))}>Next</button>
+        <div style={{marginLeft:'auto'}}>
+          <button onClick={() => simulateMatchday(1500)} disabled={runningSim}>{runningSim ? 'Simulating…' : 'Simulate Matchday'}</button>
+        </div>
       </div>
       <div style={{maxHeight:420, overflow:'auto', border:'1px solid #eee', padding:8}}>
         {cur.map((m, i) => {
           const [lh, la] = expectedGoals(m.home, m.away);
           const probHomeWin = Math.min(0.99, Math.max(0.01, 1 - Math.exp(-(lh - la + 0.2))));
+          const sim = simResults ? simResults[i] : null;
           return (
             <div key={i} style={{display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px dashed #f4f4f4'}}>
-              <div style={{fontWeight:600}}>{m.home} <span style={{color:'#999'}}>v</span> {m.away}</div>
-              <div style={{color:'#666'}}>xG {lh.toFixed(2)}–{la.toFixed(2)} · {Math.round(probHomeWin*100)}%</div>
+              <div style={{fontWeight:600, cursor:'pointer'}} onClick={() => setSelectedMatch({ ...m, idx: i })}>
+                {m.home} <span style={{color:'#999'}}>v</span> {m.away}
+              </div>
+              <div style={{color:'#666', textAlign:'right'}}>
+                <div>xG {lh.toFixed(2)}–{la.toFixed(2)} · {Math.round(probHomeWin*100)}%</div>
+                {sim && <div style={{fontSize:12, color:'#444'}}>
+                  {sim.homeWinPct}% / {sim.drawPct}% / {sim.awayWinPct}% • {sim.avgHomeGoals}-{sim.avgAwayGoals}
+                </div>}
+              </div>
             </div>
           );
         })}
       </div>
+
+      {selectedMatch && (
+        <div style={{position:'fixed', left:0, top:0, right:0, bottom:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center'}} onClick={() => setSelectedMatch(null)}>
+          <div style={{background:'#fff', padding:20, minWidth:320}} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{marginTop:0}}>{selectedMatch.home} v {selectedMatch.away}</h3>
+            <p style={{color:'#666'}}>xG: {expectedGoals(selectedMatch.home, selectedMatch.away).map(x=>x.toFixed(2)).join(' - ')}</p>
+            {simResults ? (() => {
+              const s = simResults[selectedMatch.idx];
+              return (
+                <div>
+                  <div><strong>Home win:</strong> {s.homeWinPct}%</div>
+                  <div><strong>Draw:</strong> {s.drawPct}%</div>
+                  <div><strong>Away win:</strong> {s.awayWinPct}%</div>
+                  <div style={{marginTop:8}}><strong>Avg score:</strong> {s.avgHomeGoals} - {s.avgAwayGoals}</div>
+                </div>
+              );
+            })() : <div style={{color:'#444'}}>No simulation run yet for this matchday.</div>}
+            <div style={{marginTop:12, textAlign:'right'}}><button onClick={() => setSelectedMatch(null)}>Close</button></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
