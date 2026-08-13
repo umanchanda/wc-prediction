@@ -17,36 +17,25 @@ import math
 from dataclasses import dataclass, field
 from typing import Optional
 
-# --- team strength ----------------------------------------------------------
-# Seed values from April 2026 FIFA points (extend freely).
-FIFA_POINTS = {
-    "France": 1877, "Spain": 1876, "Argentina": 1875, "England": 1826,
-    "Portugal": 1764, "Brazil": 1761, "Netherlands": 1758, "Morocco": 1756,
-    "Belgium": 1735, "Germany": 1730, "Croatia": 1717, "Italy": 1700,
-    "Colombia": 1693, "Senegal": 1689, "Mexico": 1681, "USA": 1673,
-    "Uruguay": 1673, "Japan": 1660, "Switzerland": 1649, "Denmark": 1621,
-    "Iran": 1600, "South Korea": 1585, "Ecuador": 1570, "Austria": 1560,
-    "Turkiye": 1550, "Australia": 1540, "Canada": 1535, "Ukraine": 1520,
-    "Norway": 1510, "Panama": 1500, "Poland": 1495, "Wales": 1485,
-    "Algeria": 1470, "Egypt": 1465, "Serbia": 1455, "Nigeria": 1450,
-    "Paraguay": 1440, "Bosnia and Herzegovina": 1430, "Tunisia": 1420,
-    "Ivory Coast": 1415, "Sweden": 1410, "Czechia": 1405, "Slovakia": 1395,
-    "Qatar": 1330, "Uzbekistan": 1310, "Iraq": 1300, "Saudi Arabia": 1290,
-    "South Africa": 1280, "Jordan": 1255, "Cape Verde": 1235, "Ghana": 1215,
-    "Curacao": 1140, "Haiti": 1130, "New Zealand": 1115,
-    "Scotland": 1385, "DR Congo": 1290,
+# --- team strength (Premier League clubs - approximate ratings) ----------
+CLUB_RATINGS = {
+    "Arsenal": 1850, "Manchester City": 1900, "Manchester United": 1760,
+    "Liverpool": 1840, "Chelsea": 1720, "Tottenham": 1780, "Newcastle United": 1765,
+    "Aston Villa": 1700, "West Ham United": 1650, "Brighton": 1690,
+    "Brentford": 1630, "Wolves": 1600, "Fulham": 1580, "Crystal Palace": 1560,
+    "Everton": 1550, "Leicester City": 1540, "Nottingham Forest": 1500,
+    "Bournemouth": 1490, "Burnley": 1470, "Luton Town": 1450,
 }
 
-HOSTS = {"USA", "Mexico", "Canada"}
 BASE_GOALS = 1.35          # avg goals per team per match
-STRENGTH_K = 0.32          # how sharply rating gap maps to goals
-HOST_BUMP = 1.12
+STRENGTH_K = 1.2          # how sharply rating gap maps to goals (club scale)
+HOME_BUMP = 1.12
 FULL_TIME = 90.0
 
 
 def _rating(team: str) -> float:
-    pts = FIFA_POINTS.get(team, 1400)   # unknown team -> weak-ish default
-    return (pts - 1500) / 110.0
+    pts = CLUB_RATINGS.get(team, 1400)   # unknown club -> weak-ish default
+    return (pts - 1500) / 200.0
 
 
 def _clamp(x: float, lo: float = 0.05, hi: float = 5.0) -> float:
@@ -58,10 +47,8 @@ def prematch_expected_goals(home: str, away: str) -> tuple[float, float]:
     rh, ra = _rating(home), _rating(away)
     lam_h = BASE_GOALS * math.exp(STRENGTH_K * (rh - ra))
     lam_a = BASE_GOALS * math.exp(STRENGTH_K * (ra - rh))
-    if home in HOSTS:
-        lam_h *= HOST_BUMP
-    if away in HOSTS:
-        lam_a *= HOST_BUMP
+    # home advantage for the home side
+    lam_h *= HOME_BUMP
     return _clamp(lam_h), _clamp(lam_a)
 
 
