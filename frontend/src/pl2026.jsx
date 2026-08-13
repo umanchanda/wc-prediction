@@ -76,6 +76,8 @@ async function loadExternalFixturesAndRatings() {
       if (Array.isArray(jf) && jf.length > 0) {
         ALL_MATCHDAYS = jf;
         ALL_MATCHES = ALL_MATCHDAYS.flat();
+        // mark that external fixtures were loaded (useful to display a badge)
+        try { window.__OFFICIAL_FIXTURES__ = true; } catch (e) {}
       }
     }
   } catch (e) {
@@ -336,7 +338,12 @@ export default function App() {
 
   return (
     <div style={{fontFamily:'Inter, system-ui, sans-serif', padding:20, maxWidth:1000, margin:'0 auto'}}>
-      <h1 style={{marginBottom:6}}>Premier League 2026-27 Prediction Desk</h1>
+      <div style={{display:'flex', alignItems:'center', gap:12}}>
+        <h1 style={{marginBottom:6, marginRight:8}}>Premier League 2026-27 Prediction Desk</h1>
+        {typeof window !== 'undefined' && window.__OFFICIAL_FIXTURES__ && (
+          <div style={{background:'#0b5', color:'#013200', padding:'6px 10px', borderRadius:6, fontWeight:700, fontSize:12}}>Official fixtures</div>
+        )}
+      </div>
       <p style={{color:'#666', marginTop:0}}>Season simulation using a Poisson model derived from club strength ratings.</p>
 
       <div style={{display:'flex', gap:8, marginBottom:16}}>
