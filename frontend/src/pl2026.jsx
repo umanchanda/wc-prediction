@@ -8,27 +8,28 @@ import "./styles.css";
 //   champion/top-4/relegation probabilities and average points.
 
 // Club strength ratings (arbitrary scale similar to Elo)
+// Official 2026-27 Premier League clubs (as used on Wikipedia)
 const TEAMS = {
-  "Arsenal": [1850, ["Ødegaard", "Saka", "Ødegaard"]],
-  "Manchester City": [1900, ["Haaland", "Foden", "De Bruyne"]],
-  "Manchester United": [1760, ["Antony", "Rashford", "Mount"]],
-  "Liverpool": [1840, ["Mohamed Salah", "Gakpo", "Nunez"]],
-  "Chelsea": [1720, ["Nunez", "Coleman", "Sterling"]],
-  "Tottenham": [1780, ["Kane", "Son", "Richarlison"]],
-  "Newcastle United": [1765, ["Wilson", "Isak", "Guimaraes"]],
-  "Aston Villa": [1700, ["Ollie Watkins", "Grealish", "Barkley"]],
-  "West Ham United": [1650, ["Antonio", "Bowen", "Emerson"]],
-  "Brighton": [1690, ["Mitchell", "Welbeck", "Grosicki"]],
-  "Brentford": [1630, ["Toney", "Janelt", "Mbeumo"]],
-  "Wolves": [1600, ["Jiménez", "Neves", "Pedro Neto"]],
-  "Fulham": [1580, ["Mitrović", "Guehi", "Palhinha"]],
-  "Crystal Palace": [1560, ["Olise", "Zaha", "Eze"]],
-  "Everton": [1550, ["Calvert-Lewin", "Richarlison", "Gordon"]],
-  "Leicester City": [1540, ["Vardy", "Lookman", "Ndidi"]],
-  "Nottingham Forest": [1500, ["Gaston", "Sporar", "Gomes"]],
-  "Bournemouth": [1490, ["Dominic Solanke", "Baimbridge", "King"]],
-  "Burnley": [1470, ["Wood", "Brady", "Guehi"]],
-  "Luton Town": [1450, ["Cornick", "Ilias", "Potts"]],
+  "Arsenal": [1850, ["Ødegaard", "Saka"]],
+  "Aston Villa": [1700, ["Ollie Watkins", "Grealish"]],
+  "Bournemouth": [1490, ["Dominic Solanke"]],
+  "Brentford": [1630, ["Toney"]],
+  "Brighton & Hove Albion": [1690, ["Mitchell"]],
+  "Chelsea": [1720, ["Coleman"]],
+  "Coventry City": [1485, ["Matt Godden"]],
+  "Crystal Palace": [1560, ["Olise"]],
+  "Everton": [1550, ["Calvert-Lewin"]],
+  "Fulham": [1580, ["Mitrović"]],
+  "Hull City": [1470, ["McBurnie"]],
+  "Ipswich Town": [1480, ["McGoldrick"]],
+  "Leeds United": [1540, ["Grodzicki"]],
+  "Liverpool": [1840, ["Mohamed Salah"]],
+  "Manchester City": [1900, ["Haaland"]],
+  "Manchester United": [1760, ["Rashford"]],
+  "Newcastle United": [1765, ["Isak"]],
+  "Nottingham Forest": [1500, ["Gaston"]],
+  "Sunderland": [1565, ["Granit Xhaka"]],
+  "Tottenham Hotspur": [1780, ["Kane"]],
 };
 
 const CLUBS = Object.keys(TEAMS);

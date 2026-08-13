@@ -17,14 +17,30 @@ import math
 from dataclasses import dataclass, field
 from typing import Optional
 
-# --- team strength (Premier League clubs - approximate ratings) ----------
+# --- team strength (Premier League clubs 2026-27 - approximate ratings) --
 CLUB_RATINGS = {
-    "Arsenal": 1850, "Manchester City": 1900, "Manchester United": 1760,
-    "Liverpool": 1840, "Chelsea": 1720, "Tottenham": 1780, "Newcastle United": 1765,
-    "Aston Villa": 1700, "West Ham United": 1650, "Brighton": 1690,
-    "Brentford": 1630, "Wolves": 1600, "Fulham": 1580, "Crystal Palace": 1560,
-    "Everton": 1550, "Leicester City": 1540, "Nottingham Forest": 1500,
-    "Bournemouth": 1490, "Burnley": 1470, "Luton Town": 1450,
+    "Arsenal": 1850,
+    "Aston Villa": 1700,
+    "AFC Bournemouth": 1490,
+    "Bournemouth": 1490,
+    "Brentford": 1630,
+    "Brighton & Hove Albion": 1690,
+    "Brighton": 1690,
+    "Chelsea": 1720,
+    "Coventry City": 1485,
+    "Crystal Palace": 1560,
+    "Everton": 1550,
+    "Fulham": 1580,
+    "Hull City": 1470,
+    "Ipswich Town": 1480,
+    "Leeds United": 1540,
+    "Liverpool": 1840,
+    "Manchester City": 1900,
+    "Manchester United": 1760,
+    "Newcastle United": 1765,
+    "Nottingham Forest": 1500,
+    "Sunderland": 1565,
+    "Tottenham Hotspur": 1780,
 }
 
 BASE_GOALS = 1.35          # avg goals per team per match
