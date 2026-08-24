@@ -1,40 +1,58 @@
-# Premier League 2026-27 Live Prediction API
+# Premier League 2026-27 Predictor
 
-A small FastAPI backend that polls a football data provider, runs an
-in-play-aware prediction model, and serves live win/draw/loss probabilities.
+A FastAPI and React app that fetches Premier League fixtures through
+[PyFotMob](https://pypi.org/project/pyfotmob/) and predicts a scoreline for
+every upcoming match.
 
-## Why a backend (not just the web app)
-- Your API key stays on the server, never in the browser.
-- One poller hits the provider on an interval; all visitors read the cache.
-- The model is in-play aware: as a match progresses, the current score
-  takes over from the pre-match strength prior.
+The model learns separate home/away attacking and defensive rates from completed
+2026-27 fixtures, applies shrinkage to league averages early in the season, and
+uses independent Poisson goal distributions to select the most likely scoreline.
+It also returns home-win, draw, and away-win probabilities.
 
-## Quick start (no API key needed)
-```bash
-pip install -r requirements.txt
-uvicorn server:app --reload --port 8000
+## Set up
+
+```powershell
+python -m pip install -r requirements.txt
+# PyFotMob 0.0.3 declares an incompatible unused Pydantic dependency.
+python -m pip install --no-deps pyfotmob==0.0.3
 ```
-Open http://localhost:8000/live — runs in **mock mode**, simulating one
-match (example teams) ticking forward so you can watch probabilities move.
 
-## Going live with real data
-1. Sign up for a provider (Sportmonks or API-Football provide live xG;
-   choose a feed appropriate for club fixtures or live match data).
-2. `cp .env.example .env`, set `PROVIDER` and your key.
-3. Restart the server.
-4. If the provider's JSON shape differs, adjust the `_map` methods in
-   `datasource.py` — that's the only place field names live.
+Create `.env` with the FotMob IDs for the 20 clubs in this season:
 
-## Endpoints
-- `GET /live` — all live matches with fresh predictions
-- `GET /predict?home=France&away=Haiti` — pre-match prediction for any pair
-- `GET /` — health + active provider
+```dotenv
+FOTMOB_TEAM_IDS=9825,8455,...
+```
 
-## Files
-- `model.py` — the prediction math (pre-match + in-play blend)
-- `datasource.py` — provider adapters (mock / Sportmonks / API-Football)
-- `server.py` — FastAPI app + background poller
+The published PyFotMob 0.0.3 wheel omits an internal `services.data` module.
+This repository includes a minimal compatibility module so its documented
+`Team(id).get()` interface works unchanged.
 
-## Connecting your existing web app
-Point the frontend's fetch at `http://localhost:8000/live` instead of
-calling any provider directly. CORS is open for GET so it works in-browser.
+## Run
+
+```powershell
+python -m uvicorn server:app --reload --port 8000
+```
+
+Then sync current fixtures:
+
+```powershell
+Invoke-RestMethod -Method Post http://localhost:8000/fixtures/sync
+```
+
+The sync stores `data/fixtures-2026-27.json`, allowing predictions to remain
+available without another provider request. Open the frontend through the
+FastAPI server after building it, or point Vite's `VITE_API_URL` at the API.
+
+## API
+
+- `POST /fixtures/sync` fetches and caches the 2026-27 fixture list.
+- `GET /fixtures` returns the cached fixtures.
+- `GET /predictions` returns a predicted scoreline for every unplayed fixture.
+- `GET /predictions?round=1` filters predictions to a matchweek.
+- `GET /healthz` reports the cache state.
+
+## Validate
+
+```powershell
+python -m unittest discover -s tests -v
+```
