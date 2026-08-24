@@ -1,115 +1,67 @@
-"""
-server.py — FastAPI backend.
-
-  GET /            -> health + which provider is active
-  GET /live        -> every live match with a fresh prediction
-  GET /predict?home=France&away=Haiti  -> pre-match prediction for any pairing
-
-A background thread polls the data source on an interval and caches the
-result, so incoming web requests are instant and you never hammer (or leak)
-your API key from the browser. The frontend should poll THIS server, never
-the provider directly.
-
-Run:
-  pip install -r requirements.txt
-  uvicorn server:app --reload --port 8000
-Then open http://localhost:8000/live
-"""
+"""FastAPI service for PyFotMob Premier League fixture predictions."""
 
 from __future__ import annotations
+
 import os
-import threading
-import time
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-load_dotenv()  # must run before any os.getenv() calls below
-
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from model import GameState, predict, prematch_expected_goals, run_season_montecarlo
-from datasource import get_source
+from fixtures import FotMobFixtureSource, load_cache, save_cache
+from model import PremierLeagueModel
 
-POLL_SECONDS = int(os.getenv("POLL_SECONDS", "20"))
-
-_cache: dict = {"updated": 0, "matches": []}
-_lock = threading.Lock()
-_source = get_source()
-_stop = threading.Event()
-
-
-def _poll_loop() -> None:
-    while not _stop.is_set():
-        try:
-            states = _source.fetch_live()
-            preds = [predict(gs).__dict__ for gs in states]
-            with _lock:
-                _cache["matches"] = preds
-                _cache["updated"] = time.time()
-        except Exception as e:  # noqa: BLE001 - keep the loop alive
-            print(f"[poll] error: {e}")
-        _stop.wait(POLL_SECONDS)
+load_dotenv()
+_fixtures = load_cache()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    t = threading.Thread(target=_poll_loop, daemon=True)
-    t.start()
     yield
-    _stop.set()
 
 
-app = FastAPI(title="WC2026 Prediction API", lifespan=lifespan)
+app = FastAPI(title="Premier League 2026-27 Predictions", lifespan=lifespan)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
 
-# allow your frontend (any origin) to read this API in the browser
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"],
-)
+
+def _predictions() -> list[dict]:
+    return PremierLeagueModel(_fixtures).predict_upcoming(_fixtures)
 
 
 @app.get("/healthz")
-def health():
-    return {
-        "service": "WC2026 Prediction API",
-        "provider": os.getenv("PROVIDER", "mock"),
-        "poll_seconds": POLL_SECONDS,
-        "last_update": _cache["updated"],
-    }
+def healthz():
+    return {"service": app.title, "season": "2026-27", "cached_fixtures": len(_fixtures)}
 
 
-@app.get("/live")
-def live():
-    with _lock:
-        return {"updated": _cache["updated"], "matches": _cache["matches"]}
+@app.post("/fixtures/sync")
+def sync_fixtures():
+    global _fixtures
+    try:
+        _fixtures = FotMobFixtureSource().fetch()
+        save_cache(_fixtures)
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"PyFotMob fixture sync failed: {exc}") from exc
+    return {"season": "2026-27", "fixtures": len(_fixtures)}
 
 
-@app.get("/predict")
-def predict_pair(
-    home: str = Query(..., description="home team name"),
-    away: str = Query(..., description="away team name"),
-):
-    """Pre-match prediction for any pairing (e.g. knockout what-ifs)."""
-    gs = GameState(home=home, away=away, status="NS")
-    lam_h, lam_a = prematch_expected_goals(home, away)
-    p = predict(gs)
-    return {**p.__dict__, "prematch_xg": {"home": round(lam_h, 2), "away": round(lam_a, 2)}}
+@app.get("/fixtures")
+def fixtures():
+    return {"season": "2026-27", "fixtures": _fixtures}
 
 
-@app.get("/season")
-def season(sims: int = Query(1500, description="number of Monte Carlo simulations")):
-    """Run a Monte Carlo season simulation server-side and return summary stats.
+@app.get("/predictions")
+def predictions(round: int | None = Query(default=None, ge=1, le=38)):
+    items = _predictions()
+    if round is not None:
+        items = [item for item in items if next(
+            (fixture.round == round for fixture in _fixtures if fixture.id == item["fixture_id"]), False
+        )]
+    return {"season": "2026-27", "predictions": items}
 
-    This can be used by the frontend when client-side compute is undesirable.
-    """
-    res = run_season_montecarlo(sims)
-    return res
 
-
-# Serve the production frontend build.  Only mounts when frontend/dist exists
-# (i.e. on Heroku after the Node buildpack runs).  All API routes above take
-# priority; this is purely a catch-all for static assets and HTML.
 if os.path.isdir("frontend/dist"):
     from fastapi.staticfiles import StaticFiles
     app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="static")
