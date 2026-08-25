@@ -109,8 +109,10 @@ def normalize_fixtures(payload: dict[str, Any], season: str = SEASON) -> list[Fi
             continue
 
         fixture_id = str(_first(item, "id", "matchId", "match_id") or f"{home}|{away}|{date}")
-        home_score = _score(_first(item, "homeScore.current", "homeScore", "home_score", "home.score"))
-        away_score = _score(_first(item, "awayScore.current", "awayScore", "away_score", "away.score"))
+        status = item.get("status")
+        finished = not isinstance(status, dict) or status.get("finished") is not False
+        home_score = _score(_first(item, "homeScore.current", "homeScore", "home_score", "home.score")) if finished else None
+        away_score = _score(_first(item, "awayScore.current", "awayScore", "away_score", "away.score")) if finished else None
         fixtures[fixture_id] = Fixture(
             id=fixture_id,
             home=home,

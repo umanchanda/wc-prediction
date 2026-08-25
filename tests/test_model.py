@@ -26,6 +26,21 @@ class FixtureNormalizationTests(unittest.TestCase):
         self.assertEqual(fixtures[0].home, "Arsenal")
         self.assertEqual(fixtures[0].round, 1)
 
+    def test_ignores_placeholder_scores_for_unfinished_fixture(self):
+        payload = {
+            "fixtures": [{
+                "id": 456,
+                "home": {"name": "Arsenal", "score": 0},
+                "away": {"name": "Chelsea", "score": 0},
+                "tournament": {"name": "Premier League"},
+                "season": "2026/2027",
+                "status": {"utcTime": "2027-01-02T15:00:00.000Z", "finished": False},
+            }]
+        }
+        fixtures = normalize_fixtures(payload)
+        self.assertEqual(len(fixtures), 1)
+        self.assertFalse(fixtures[0].played)
+
 
 class PredictionTests(unittest.TestCase):
     def test_predicts_a_valid_scoreline_and_probabilities(self):
